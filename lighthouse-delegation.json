@@ -1,0 +1,65 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "mspOfferName": {
+            "type": "string",
+            "defaultValue": "UpdateIQ offerings"
+        },
+        "mspOfferDescription": {
+            "type": "string",
+            "defaultValue": "UpdateIQ offerings for specific resource group"
+        },
+        "managedByTenantId": {
+            "type": "string"
+        },
+        "mspPrincipalId": {
+            "type": "string"
+        },
+        "rgName": {
+            "type": "string"
+        },
+        "location": {
+            "type": "string"
+        }
+    },
+    "variables": {
+        "registrationDefinitionId": "[guid(parameters('mspOfferName'))]",
+        "registrationAssignmentId": "[guid(parameters('mspOfferName'), parameters('rgName'))]",
+        "scope": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', parameters('rgName'))]",
+        "authorizations": [
+            {
+                "principalId": "[parameters('mspPrincipalId')]",
+                "roleDefinitionId": "b24988ac-6180-42a0-ab88-20f7382dd24c",
+                "principalIdDisplayName": "UpdateIQ Contributor Group"
+            },
+            {
+                "principalId": "[parameters('mspPrincipalId')]",
+                "roleDefinitionId": "91c1777a-f3dc-4fae-b103-61d183457e46",
+                "principalIdDisplayName": "UpdateIQ Managed Services Registration Assignment Delete Group"
+            }
+        ]
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedServices/registrationDefinitions",
+            "apiVersion": "2020-02-01-preview",
+            "name": "[variables('registrationDefinitionId')]",
+            "properties": {
+                "registrationDefinitionName": "[parameters('mspOfferName')]",
+                "description": "[parameters('mspOfferDescription')]",
+                "managedByTenantId": "[parameters('managedByTenantId')]",
+                "authorizations": "[variables('authorizations')]"
+            }
+        },
+        {
+            "type": "Microsoft.ManagedServices/registrationAssignments",
+            "apiVersion": "2020-02-01-preview",
+            "name": "[variables('registrationAssignmentId')]",
+            "scope": "[variables('scope')]",
+            "properties": {
+                "registrationDefinitionId": "[resourceId('Microsoft.ManagedServices/registrationDefinitions', variables('registrationDefinitionId'))]"
+            }
+        }
+    ]
+}
