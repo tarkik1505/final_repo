@@ -56,7 +56,6 @@
             "type": "Microsoft.ManagedServices/registrationAssignments",
             "apiVersion": "2020-02-01-preview",
             "name": "[variables('registrationAssignmentId')]",
-            "scope": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', parameters('rgName'))]",
             "properties": {
                 "registrationDefinitionId": "[resourceId('Microsoft.ManagedServices/registrationDefinitions', variables('registrationDefinitionId'))]"
             }
