@@ -4,7 +4,7 @@
     "parameters": {
         "mspOfferName": {
             "type": "string",
-            "defaultValue": "UpdateIQ offerings"
+            "defaultValue": "UpdateIQ offerings from Rushabh"
         },
         "mspOfferDescription": {
             "type": "string",
