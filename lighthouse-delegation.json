@@ -59,6 +59,9 @@
             "type": "Microsoft.ManagedServices/registrationAssignments",
             "apiVersion": "2020-02-01-preview",
             "name": "[variables('registrationAssignmentId')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedServices/registrationDefinitions', variables('registrationDefinitionId'))]"
+              ],
             "properties": {
                 "registrationDefinitionId": "[resourceId('Microsoft.ManagedServices/registrationDefinitions', variables('registrationDefinitionId'))]"
             }
