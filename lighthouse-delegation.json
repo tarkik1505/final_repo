@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/subscriptionDeploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-08-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "mspOfferName": {
@@ -11,12 +11,15 @@
             "defaultValue": "UpdateIQ offerings for specific resource group"
         },
         "managedByTenantId": {
+            "type": "string",
+            "metadata": {
+                "description": "The tenant ID of the MSP"
+            }
+        },
+        "rgName": {
             "type": "string"
         },
         "mspPrincipalId": {
-            "type": "string"
-        },
-        "rgName": {
             "type": "string"
         },
         "location": {
@@ -26,7 +29,7 @@
     "variables": {
         "registrationDefinitionId": "[guid(parameters('mspOfferName'))]",
         "registrationAssignmentId": "[guid(parameters('mspOfferName'), parameters('rgName'))]",
-        
+        "scope": "[concat(subscription().id, '/resourceGroups/', parameters('rgName'))]",
         "authorizations": [
             {
                 "principalId": "[parameters('mspPrincipalId')]",
@@ -36,7 +39,7 @@
             {
                 "principalId": "[parameters('mspPrincipalId')]",
                 "roleDefinitionId": "91c1777a-f3dc-4fae-b103-61d183457e46",
-                "principalIdDisplayName": "UpdateIQ Managed Services Registration Assignment Delete Group"
+                "principalIdDisplayName": "UpdateIQ Deletion Group"
             }
         ]
     },
