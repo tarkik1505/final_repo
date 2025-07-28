@@ -61,7 +61,7 @@
             "name": "[variables('registrationAssignmentId')]",
             "dependsOn": [
                 "[resourceId('Microsoft.ManagedServices/registrationDefinitions', variables('registrationDefinitionId'))]"
-              ],
+            ],
             "properties": {
                 "registrationDefinitionId": "[resourceId('Microsoft.ManagedServices/registrationDefinitions', variables('registrationDefinitionId'))]"
             }
