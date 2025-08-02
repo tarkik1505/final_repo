@@ -43,4 +43,4 @@ jobs:
       with:
         azcliversion: latest
         inlineScript: |
-           az storage account list --output table
+           az storage account list -g myRG --output table
