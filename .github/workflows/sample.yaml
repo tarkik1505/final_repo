@@ -1,16 +1,16 @@
-name: Run Azure CLI Login with OpenID Connect
+name: Azure Infra Resource Provisioning
 on:
   workflow_dispatch:
     inputs:
       client_name:
-        description: 'Client name (e.g., Dhitech)'
+        description: 'Client name (e.g., daybreakmetro)'
         required: true
         type: choice
         options:
-          - Dhitech
+          - daybreakmetro
      
 jobs: 
-  login:
+  setup:
     permissions:
       id-token: write # Require write permission to Fetch an OIDC token.
 
@@ -37,7 +37,19 @@ jobs:
         tenant-id: ${{ env.AZURE_TENANT_ID }}
         subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
   
-    - name: Azure CLI script
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.12.2
+    
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          .github
+          AutoSquiared.Infrastructure
+
+    - name: Terraform Init
       uses: azure/cli@v2
       with:
         azcliversion: latest

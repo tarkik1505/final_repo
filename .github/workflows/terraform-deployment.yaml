@@ -1,0 +1,128 @@
+name: Azure Infra Resource Provisioning
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_name:
+        description: 'Choose the client'
+        required: true
+        type: choice
+        options:
+          - daybreakmetro
+
+jobs:
+  # ────────────────
+  # 1. Setup
+  # ────────────────
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    outputs:
+      AZURE_CLIENT_ID: ${{ steps.export.outputs.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ steps.export.outputs.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ steps.export.outputs.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Install jq
+        run: sudo apt-get install jq -y
+
+      - name: Extract client credentials
+        id: export
+        run: |
+          echo '${{ secrets.AZURE_ALL_CLIENT_SECRET }}' > secrets.json
+          export CLIENT_ID=$(jq -r --arg name "${{ github.event.inputs.client_name }}" '.[$name].client_id' secrets.json)
+          export TENANT_ID=$(jq -r --arg name "${{ github.event.inputs.client_name }}" '.[$name].tenant_id' secrets.json)
+          export SUBSCRIPTION_ID=$(jq -r --arg name "${{ github.event.inputs.client_name }}" '.[$name].subscription_id' secrets.json)
+
+          echo "AZURE_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+          echo "AZURE_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+          echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+
+          echo "::set-output name=AZURE_CLIENT_ID::$CLIENT_ID"
+          echo "::set-output name=AZURE_TENANT_ID::$TENANT_ID"
+          echo "::set-output name=AZURE_SUBSCRIPTION_ID::$SUBSCRIPTION_ID"
+
+  # ────────────────
+  # 2. Terraform Plan
+  # ────────────────
+  plan:
+    needs: setup
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    env:
+      AZURE_CLIENT_ID: ${{ needs.setup.outputs.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ needs.setup.outputs.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ needs.setup.outputs.AZURE_SUBSCRIPTION_ID }}
+    outputs:
+      plan_file_name: ${{ steps.plan-file.outputs.plan_file }}
+    steps:
+       - name: Terraform Init
+        uses: ./.github/actions/terraform-init
+        with:
+          client_id: ${{ needs.setup.outputs.AZURE_CLIENT_ID }}
+          tenant_id: ${{ needs.setup.outputs.AZURE_TENANT_ID }}
+          subscription_id: ${{ needs.setup.outputs.AZURE_SUBSCRIPTION_ID }}
+          client_name: ${{ github.event.inputs.client_name }}
+
+      - name: Generate plan filename
+        id: plan-file
+        run: |
+          PLAN_NAME=tfplan-${{ github.event.inputs.client_name }}.out
+          echo "plan_file=$PLAN_NAME" >> $GITHUB_ENV
+
+      - name: Terraform Plan
+        run: terraform plan -out=${{ steps.plan-file.outputs.plan_file }} -var-file="tfvars/${{ github.event.inputs.client_name }}.tfvars"
+
+      - name: Show Human-Readable Plan
+        run: terraform show -no-color ${{ steps.plan-file.outputs.plan_file }} > plan.txt
+
+      - name: Print Plan Summary
+        run: |
+          echo "### Terraform Plan Summary"
+          echo '```diff'
+          cat plan.txt
+          echo '```'
+
+      - name: Upload Plan File
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ steps.plan-file.outputs.plan_file }}
+
+      - name: Upload Plan Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-summary
+          path: plan.txt
+
+  # ────────────────
+  # 3. Terraform Apply
+  # ────────────────
+  apply:
+    needs: [setup, plan]
+    runs-on: ubuntu-latest
+    environment: tf-manual-approval  # <-- triggers approval UI
+    permissions:
+      id-token: write
+    env:
+      AZURE_CLIENT_ID: ${{ needs.setup.outputs.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ needs.setup.outputs.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ needs.setup.outputs.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Terraform Init
+        uses: ./.github/actions/terraform-init
+        with:
+          client_id: ${{ needs.setup.outputs.AZURE_CLIENT_ID }}
+          tenant_id: ${{ needs.setup.outputs.AZURE_TENANT_ID }}
+          subscription_id: ${{ needs.setup.outputs.AZURE_SUBSCRIPTION_ID }}
+          client_name: ${{ github.event.inputs.client_name }}
+
+      - name: Download Plan File
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ needs.plan.outputs.plan_file_name }}
+
+      - name: Terraform Apply
+        run: terraform apply ${{ needs.plan.outputs.plan_file_name }}

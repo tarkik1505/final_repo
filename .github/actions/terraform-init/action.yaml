@@ -1,0 +1,39 @@
+name: Terraform Init
+description: Reusable Terraform init
+
+inputs:
+  client_id:
+    required: true
+  tenant_id:
+    required: true
+  subscription_id:
+    required: true
+  client_name:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        sparse-checkout: |
+          .github
+          AutoSquiared.Infrastructure
+
+    - name: Azure Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ inputs.client_id }}
+        tenant-id: ${{ inputs.tenant_id }}
+        subscription-id: ${{ inputs.subscription_id }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.12.2
+
+    - name: Terraform Init
+      shell: bash
+      run: |
+        terraform init \
+          -backend-config="backend/${{ inputs.client_name }}.conf"
