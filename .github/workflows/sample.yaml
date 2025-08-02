@@ -1,6 +1,13 @@
 name: Azure Infra Resource Provisioning
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
+    inputs:
+      client_name:
+        description: 'Client name (e.g., Dhitech)'
+        required: true
+        type: choice
+        options:
+          - Dhitech
      
 jobs: 
   setup:
