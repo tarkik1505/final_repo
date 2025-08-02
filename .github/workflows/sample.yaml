@@ -1,13 +1,6 @@
 name: Azure Infra Resource Provisioning
 on:
-  workflow_dispatch:
-    inputs:
-      client_name:
-        description: 'Client name (e.g., daybreakmetro)'
-        required: true
-        type: choice
-        options:
-          - daybreakmetro
+  workflow_dispatch: 
      
 jobs: 
   setup:
@@ -36,23 +29,11 @@ jobs:
         client-id: ${{ env.AZURE_CLIENT_ID }}
         tenant-id: ${{ env.AZURE_TENANT_ID }}
         subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
-  
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.12.2
-    
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        sparse-checkout: |
-          .github
-          AutoSquiared.Infrastructure
 
-    - name: Terraform Init
+
+    - name: Azure check
       uses: azure/cli@v2
       with:
         azcliversion: latest
         inlineScript: |
-          az account show
-          # You can write your Azure CLI inline scripts here.
+           az storage account list --output table
