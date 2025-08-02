@@ -1,5 +1,13 @@
 name: Run Azure CLI Login with OpenID Connect
-on: [push]
+on:
+  workflow_dispatch:
+    inputs:
+      client_name:
+        description: 'Client name (e.g., Dhitech)'
+        required: true
+        type: choice
+        options:
+          - Dhitech
      
 jobs: 
   test:
@@ -8,12 +16,26 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
+    - name: Install jq
+      run: sudo apt-get install jq
+    
+    - name: Extract client credentials
+      run: |
+        echo '${{ secrets.AZURE_ALL_CLIENT_SECRET }}' > secrets.json
+        export CLIENT_ID=$(jq -r --arg name "${{ github.event.inputs.client_name }}" '.[$name].client_id' secrets.json)
+        export TENANT_ID=$(jq -r --arg name "${{ github.event.inputs.client_name }}" '.[$name].tenant_id' secrets.json)
+        export SUBSCRIPTION_ID=$(jq -r --arg name "${{ github.event.inputs.client_name }}" '.[$name].subscription_id' secrets.json)
+
+        echo "AZURE_CLIENT_ID=$CLIENT_ID" >> $GITHUB_ENV
+        echo "AZURE_TENANT_ID=$TENANT_ID" >> $GITHUB_ENV
+        echo "AZURE_SUBSCRIPTION_ID=$SUBSCRIPTION_ID" >> $GITHUB_ENV
+
     - name: Azure CLI Login
       uses: azure/login@v2
       with:
-        client-id: ${{ secrets.AZURE_MY_ACCOUNT_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_MY_ACCOUNT_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_MY_ACCOUNT_SUBSCRIPTION_ID }}
+        client-id: ${{ env.AZURE_CLIENT_ID }}
+        tenant-id: ${{ env.AZURE_TENANT_ID }}
+        subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
   
     - name: Azure CLI script
       uses: azure/cli@v2
